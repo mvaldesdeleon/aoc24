@@ -5,19 +5,20 @@ where
 
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
+import qualified Data.Text.Read as TR
 import Relude
 
 -- Parsing
 parse :: Text -> ([Integer], [Integer])
 parse input =
-  let dataRows = map (map (unsafeParseInteger . T.unpack) . words) . lines $ input
+  let dataRows = map (map unsafeParseInteger . words) . lines $ input
       (lhl : rhl : _) = transpose dataRows
    in (lhl, rhl)
   where
     unsafeParseInteger str =
-      case readMaybe str of
-        Just i -> i
-        Nothing -> undefined
+      case TR.decimal str of
+        Right (i, _) -> i
+        Left _ -> undefined
 
 part1 :: Text -> Integer
 part1 input =
