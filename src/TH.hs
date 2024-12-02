@@ -12,7 +12,8 @@ import Relude
 
 challenges :: [String]
 challenges =
-  [ "Day 1: Historian Hysteria"
+  [ "Day 1: Historian Hysteria",
+    "Day 2: Red-Nosed Reports"
   ]
 
 makeDayT :: Q [Dec]
