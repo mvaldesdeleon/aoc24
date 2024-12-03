@@ -16,9 +16,7 @@ newtype Report = Report [Integer]
 
 -- Parsing
 parse :: Text -> [Report]
-parse input =
-  let dataRows = map (Report . map unsafeParseInteger . words) . lines $ input
-   in dataRows
+parse input = Report . map unsafeParseInteger . words <$> lines input
   where
     unsafeParseInteger str =
       case TR.decimal str of
@@ -33,7 +31,7 @@ reportState (Report xs) =
    in if s && r then Safe else Unsafe
   where
     signs xs = all (> 0) xs || all (< 0) xs
-    ranges xs = length (filter (\x -> x >= 1 && x <= 3) . map abs $ xs) == length xs
+    ranges xs = all ((\x -> x >= 1 && x <= 3) . abs) xs
 
 reportState' :: Report -> ReportState
 reportState' (Report xs) =
@@ -41,15 +39,12 @@ reportState' (Report xs) =
    in if any ((== Safe) . reportState . Report) xss then Safe else Unsafe
   where
     variations xs =
-      let is = [0 .. length xs - 1]
-          xss = repeat xs
-          pre = zipWith take is xss
-          post = map (drop 1) . zipWith drop is $ xss
-       in xs : zipWith (++) pre post
+      let pre = inits xs
+          post = drop 1 <$> tails xs
+       in zipWith (++) pre post
 
 diffs :: [Integer] -> [Integer]
-diffs [a] = []
-diffs (a : b : rest) = (a - b) : diffs (b : rest)
+diffs xs = zipWith (-) xs (drop 1 xs)
 
 part1 :: Text -> Integer
 part1 = toInteger . length . filter (== Safe) . map reportState . parse

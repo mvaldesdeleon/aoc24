@@ -11,7 +11,7 @@ import Relude
 -- Parsing
 parse :: Text -> ([Integer], [Integer])
 parse input =
-  let dataRows = map (map unsafeParseInteger . words) . lines $ input
+  let dataRows = map unsafeParseInteger . words <$> lines input
       (lhl : rhl : _) = transpose dataRows
    in (lhl, rhl)
   where
@@ -25,7 +25,7 @@ part1 input =
   let (lhl, rhl) = parse input
       slhl = sort lhl
       srhl = sort rhl
-   in sum $ map abs $ zipWith (-) slhl srhl
+   in sum $ abs <$> zipWith (-) slhl srhl
 
 frequencies :: [Integer] -> M.Map Integer Integer
 frequencies = foldr countItem M.empty
