@@ -3,6 +3,7 @@ module Day4
   )
 where
 
+import Data.NumInstances.Tuple
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import Relude
@@ -19,15 +20,16 @@ data Dir = S | E | N | W | SE | SW | NE | NW
 
 toDeltas :: Dir -> [(Integer, Integer)]
 toDeltas dir =
-  case dir of
-    S -> [(0, 0), (0, 1), (0, 2), (0, 3)]
-    E -> [(0, 0), (1, 0), (2, 0), (3, 0)]
-    N -> [(0, 0), (0, -1), (0, -2), (0, -3)]
-    W -> [(0, 0), (-1, 0), (-2, 0), (-3, 0)]
-    SE -> [(0, 0), (1, 1), (2, 2), (3, 3)]
-    SW -> [(0, 0), (-1, 1), (-2, 2), (-3, 3)]
-    NE -> [(0, 0), (1, -1), (2, -2), (3, -3)]
-    NW -> [(0, 0), (-1, -1), (-2, -2), (-3, -3)]
+  let is = [0, 1, 2, 3]
+   in case dir of
+        S -> (* (0, 1)) <$> is
+        E -> (* (1, 0)) <$> is
+        N -> (* (0, -1)) <$> is
+        W -> (* (-1, 0)) <$> is
+        SE -> (* (1, 1)) <$> is
+        SW -> (* (-1, 1)) <$> is
+        NE -> (* (1, -1)) <$> is
+        NW -> (* (-1, -1)) <$> is
 
 charLookup :: WordSearch -> Integer -> (Integer, Integer) -> Maybe Char
 charLookup (WordSearch width heigth puzzle) pos (dx, dy) =
