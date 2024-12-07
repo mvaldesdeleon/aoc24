@@ -109,7 +109,7 @@ isLoop (LabMap width heigth tiles guard) =
   runST $ do
     guardRef <- newSTRef guard
     mapRef <- newSTRef M.empty
-    tilesArr <- newListArray (0, V.length tiles - 1) (toChar <$> V.toList tiles) :: ST s (STUArray s Int Char)
+    tilesArr <- newListArray (0, V.length tiles - 1) (toChar <$> V.toList tiles)
     indexRef <- newSTRef 0
     untilM_ (stStep width heigth guardRef tilesArr) (stDone guardRef mapRef indexRef)
     guard <- readSTRef guardRef
