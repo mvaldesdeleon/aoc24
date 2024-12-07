@@ -15,15 +15,8 @@ import Relude
 data Tile = Empty | Obstacle | Visited
   deriving (Ord, Eq, Show)
 
-toChar :: Tile -> Char
-toChar t =
-  case t of
-    Empty -> 'E'
-    Obstacle -> 'O'
-    Visited -> 'V'
-
 data Dir = S | E | N | W | OOB
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Bounded, Enum)
 
 cw :: Dir -> Dir
 cw dir =
@@ -48,11 +41,6 @@ data LabMap = LabMap
   }
   deriving (Ord, Eq, Show)
 
-toTile :: Char -> Tile
-toTile '#' = Obstacle
-toTile '^' = Visited
-toTile _ = Empty
-
 parseLabMap :: Text -> LabMap
 parseLabMap input =
   let rows = lines input
@@ -63,6 +51,10 @@ parseLabMap input =
       gX = toInteger $ gP `mod` width
       gY = toInteger $ gP `div` width
    in LabMap (toInteger width) (toInteger height) tiles (Guard (gX, gY) N)
+  where
+    toTile '#' = Obstacle
+    toTile '^' = Visited
+    toTile _ = Empty
 
 advance :: Guard -> Guard
 advance (Guard (gX, gY) dir) =
@@ -108,12 +100,17 @@ isLoop :: LabMap -> Bool
 isLoop (LabMap width heigth tiles guard) =
   runST $ do
     guardRef <- newSTRef guard
-    mapRef <- newSTRef M.empty
-    tilesArr <- newListArray (0, V.length tiles - 1) (toChar <$> V.toList tiles)
-    indexRef <- newSTRef 0
-    untilM_ (stStep width heigth guardRef tilesArr) (stDone guardRef mapRef indexRef)
+    guardMap <- newArray (0, fromInteger $ width * heigth * 4) False :: ST s (STUArray s Int Bool)
+    tilesArr <- newListArray (0, V.length tiles - 1) (toChar <$> V.toList tiles) :: ST s (STUArray s Int Char)
+    untilM_ (stStep width heigth guardRef tilesArr) (stDone width guardRef guardMap)
     guard <- readSTRef guardRef
     return (gDir guard /= OOB)
+  where
+    toChar t =
+      case t of
+        Empty -> 'E'
+        Obstacle -> 'O'
+        Visited -> 'V'
 
 stStep :: Integer -> Integer -> STRef s Guard -> STUArray s Int Char -> ST s ()
 stStep width heigth guardRef tilesArr = do
@@ -136,20 +133,20 @@ stStep width heigth guardRef tilesArr = do
   where
     toIndex (x, y) = fromIntegral $ y * width + x
 
-stDone :: STRef s Guard -> STRef s (M.Map Guard Integer) -> STRef s Integer -> ST s Bool
-stDone guardRef mapRef indexRef = do
+stDone :: Integer -> STRef s Guard -> STUArray s Int Bool -> ST s Bool
+stDone width guardRef guardMap = do
   guard <- readSTRef guardRef
   if gDir guard == OOB
     then return True
     else do
-      map <- readSTRef mapRef
-      case guard `M.lookup` map of
-        Just iv -> return True
-        Nothing -> do
-          index <- readSTRef indexRef
-          modifySTRef' mapRef (M.insert guard index)
-          modifySTRef' indexRef (+ 1)
+      seen <- readArray guardMap (guardIndex guard)
+      if seen
+        then return True
+        else do
+          writeArray guardMap (guardIndex guard) True
           return False
+  where
+    guardIndex (Guard (x, y) dir) = fromInteger (y * width * 4 + x * 4) + fromEnum dir
 
 part2 :: Text -> Integer
 part2 input =
