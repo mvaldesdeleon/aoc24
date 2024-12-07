@@ -3,13 +3,24 @@ module Day6
   )
 where
 
+import Control.Monad.Loops (untilM_)
+import Control.Monad.ST
+import Data.Array.ST
 import qualified Data.Map.Strict as M
+import Data.STRef (STRef, modifySTRef', newSTRef, readSTRef, writeSTRef)
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import Relude
 
 data Tile = Empty | Obstacle | Visited
   deriving (Ord, Eq, Show)
+
+toChar :: Tile -> Char
+toChar t =
+  case t of
+    Empty -> 'E'
+    Obstacle -> 'O'
+    Visited -> 'V'
 
 data Dir = S | E | N | W | OOB
   deriving (Eq, Ord, Show)
@@ -94,21 +105,51 @@ putObstacle' :: LabMap -> Integer -> LabMap
 putObstacle' lm p = lm {mTiles = mTiles lm V.// [(fromInteger p, Obstacle)]}
 
 isLoop :: LabMap -> Bool
-isLoop lm =
-  let gs = mGuard <$> iterate step lm
-   in case findCycle gs of
-        Nothing -> False
-        Just (offset, len) -> len /= 1
+isLoop (LabMap width heigth tiles guard) =
+  runST $ do
+    guardRef <- newSTRef guard
+    mapRef <- newSTRef M.empty
+    tilesArr <- newListArray (0, V.length tiles - 1) (toChar <$> V.toList tiles) :: ST s (STUArray s Int Char)
+    indexRef <- newSTRef 0
+    untilM_ (stStep width heigth guardRef tilesArr) (stDone guardRef mapRef indexRef)
+    guard <- readSTRef guardRef
+    return (gDir guard /= OOB)
 
-findCycle :: (Ord a) => [a] -> Maybe (Integer, Integer)
-findCycle vs = go vs 0 M.empty
+stStep :: Integer -> Integer -> STRef s Guard -> STUArray s Int Char -> ST s ()
+stStep width heigth guardRef tilesArr = do
+  guard <- readSTRef guardRef
+  let (x', y') = gCoords $ advance guard
+  if x' >= 0 && x' < width && y' >= 0 && y' < heigth
+    then do
+      tile <- readArray tilesArr $ toIndex (x', y')
+      case tile of
+        'O' -> do
+          writeSTRef guardRef (rotate guard)
+          return ()
+        _ -> do
+          writeSTRef guardRef (advance guard)
+          writeArray tilesArr (toIndex (x', y')) 'V'
+          return ()
+    else do
+      writeSTRef guardRef (guard {gDir = OOB})
+      return ()
   where
-    go :: (Ord a) => [a] -> Integer -> M.Map a Integer -> Maybe (Integer, Integer)
-    go [] _ _ = Nothing
-    go (v : vs) i vals =
-      case v `M.lookup` vals of
-        Just iv -> Just (iv, i - iv)
-        Nothing -> go vs (i + 1) (M.insert v i vals)
+    toIndex (x, y) = fromIntegral $ y * width + x
+
+stDone :: STRef s Guard -> STRef s (M.Map Guard Integer) -> STRef s Integer -> ST s Bool
+stDone guardRef mapRef indexRef = do
+  guard <- readSTRef guardRef
+  if gDir guard == OOB
+    then return True
+    else do
+      map <- readSTRef mapRef
+      case guard `M.lookup` map of
+        Just iv -> return True
+        Nothing -> do
+          index <- readSTRef indexRef
+          modifySTRef' mapRef (M.insert guard index)
+          modifySTRef' indexRef (+ 1)
+          return False
 
 part2 :: Text -> Integer
 part2 input =
@@ -118,8 +159,6 @@ part2 input =
       Just lastLab = viaNonEmpty head lastLabs
       positions = getVisited' lastLab
    in genericLength $ filter isLoop $ putObstacle' lm <$> positions
-
--- in genericLength $ filter isLoop $ (putObstacle' lm . (\p -> trace ("P: " ++ show p) p)) <$> positions
 
 day6 :: Text -> IO (String, String)
 day6 input = do
