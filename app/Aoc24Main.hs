@@ -12,6 +12,7 @@ import Day4 (day4)
 import Day5 (day5)
 import Day6 (day6)
 import Day7 (day7)
+import Day8 (day8)
 import Network.HTTP.Req ((/:))
 import qualified Network.HTTP.Req as R
 import qualified Options.Applicative as OA
