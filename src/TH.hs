@@ -22,7 +22,8 @@ challenges =
     "Day 8: Resonant Collinearity",
     "Day 9: Disk Fragmenter",
     "Day 10: Hoof It",
-    "Day 11: Plutonian Pebbles"
+    "Day 11: Plutonian Pebbles",
+    "Day 12: Garden Groups"
   ]
 
 makeDayT :: Q [Dec]
