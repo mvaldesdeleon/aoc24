@@ -23,7 +23,8 @@ challenges =
     "Day 9: Disk Fragmenter",
     "Day 10: Hoof It",
     "Day 11: Plutonian Pebbles",
-    "Day 12: Garden Groups"
+    "Day 12: Garden Groups",
+    "Day 13: Claw Contraption"
   ]
 
 makeDayT :: Q [Dec]
