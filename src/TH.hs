@@ -24,7 +24,8 @@ challenges =
     "Day 10: Hoof It",
     "Day 11: Plutonian Pebbles",
     "Day 12: Garden Groups",
-    "Day 13: Claw Contraption"
+    "Day 13: Claw Contraption",
+    "Day 14: Restroom Redoubt"
   ]
 
 makeDayT :: Q [Dec]
