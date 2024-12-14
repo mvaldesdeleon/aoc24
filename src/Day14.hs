@@ -72,27 +72,23 @@ display' (rs, t) = do
   putStrLn $ "t=" ++ show t
   display rs
 
--- isInteresting :: ([Robot], Integer) -> Bool
--- isInteresting (rs, _) =
---   let (q1, q2, q3, q4) = groupByQuadrant rs
---    in L.genericLength (unique q1) == L.genericLength (unique q2) && L.genericLength (unique q3) == L.genericLength (unique q4)
---   where
---     unique = L.nubBy ((==) `on` rPosition)
-
 isInteresting :: ([Robot], Integer) -> Bool
 isInteresting (rs, _) =
-  let rs' = L.sortBy (comparing (rPosition)) rs
-   in (>= 3) . fst $ foldl' isNext (0, (0, 0)) rs'
+  let rs' = L.sortBy (comparing rPosition) rs
+   in (>= 10) . (\(a, _, _) -> a) $ foldl' isNext (0, 0, (0, 0)) rs'
   where
-    isNext (s, (px, py)) (Robot (x, y) _) =
+    isNext (m, s, (px, py)) (Robot (x, y) _) =
       if px == x && abs (y - py) <= 1
-        then (s + 1, (x, y))
-        else (1, (x, y))
+        then (max m (s + 1), s + 1, (x, y))
+        else (max m 1, 1, (x, y))
+
+part2 :: Text -> Integer
+part2 input =
+  let rs = parseInput input
+      ts = [1 .. 10000]
+      rss = (\i -> moveRobot i <$> rs) <$> ts
+   in maybe 0 snd $ L.find isInteresting $ zip rss ts
 
 day14 :: Text -> IO (String, String)
 day14 input = do
-  let rs = parseInput input
-      ts = [88, 191 ..]
-      rss = (\i -> moveRobot i <$> rs) <$> ts
-  mapM_ display' $ L.take 1000 $ zip rss ts
-  return (show $ part1 input, "N/A")
+  return (show $ part1 input, show $ part2 input)
