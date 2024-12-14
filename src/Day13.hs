@@ -23,13 +23,7 @@ parsePrize :: Parser (Integer, Integer)
 parsePrize = (,) <$> ("Prize: X=" *> decimal) <*> (", Y=" *> decimal)
 
 parseClawMachine :: Parser ClawMachine
-parseClawMachine = do
-  btnA <- parseButton
-  endOfLine
-  btnB <- parseButton
-  endOfLine
-  prize <- parsePrize
-  return $ ClawMachine btnA btnB prize
+parseClawMachine = ClawMachine <$> parseButton <* endOfLine <*> parseButton <* endOfLine <*> parsePrize
 
 tokens :: (Num a) => (a, a) -> a
 tokens (a, b) = 3 * a + b
