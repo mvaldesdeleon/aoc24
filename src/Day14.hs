@@ -63,7 +63,7 @@ display = print . render
   where
     render rs = runST $ do
       bathroom <- newArray (0, fromInteger $ bWidth * bHeight - 1) '.' :: ST s (STUArray s Int Char)
-      mapM_ (\(Robot (x, y) _) -> writeArray bathroom (fromInteger $ y * bWidth + x) '#') rs --- FIXME
+      mapM_ (\(Robot (x, y) _) -> writeArray bathroom (fromInteger $ y * bWidth + x) '#') rs
       T.pack <$> getElems bathroom
     print input = mapM_ (putStrLn . T.unpack) (T.chunksOf (fromInteger bWidth) input)
 
