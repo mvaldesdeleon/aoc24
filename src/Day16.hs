@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Day16
   ( day16,
   )
@@ -96,9 +94,6 @@ parseRaindeerMaze input =
     toTile 'S' = Start
     toTile 'E' = End
 
-tag :: (Show a) => String -> a -> a
-tag label value = trace (label ++ show value) value
-
 shortestPath :: RaindeerMaze -> (Integer, Integer, [Text])
 shortestPath (RaindeerMaze width height tiles reindeer) = runST $ do
   -- the map
@@ -107,18 +102,19 @@ shortestPath (RaindeerMaze width height tiles reindeer) = runST $ do
   scoresArr <- newArray (0, V.length tiles * 4 - 1) (-1) :: ST s (STUArray s Int Int)
   parentsArr <- newArray (0, V.length tiles * 4 - 1) 0 :: ST s (STUArray s Int Int8)
   -- iteration structures
-  candidatesArr <- newArray (0, V.length tiles * 4 - 1) False :: ST s (STUArray s Int Bool)
+  candidatesArr <- newArray (0, V.length tiles * 4 - 1) 0 :: ST s (STUArray s Int Int)
+  candidatesRef <- newSTRef 0
   doneArr <- newArray (0, V.length tiles * 4 - 1) False :: ST s (STUArray s Int Bool)
   -- set initial node
   writeArray scoresArr (toInt reindeer) 0
-  stAdd candidatesArr reindeer
+  stAdd candidatesRef candidatesArr reindeer
 
-  whileM_ (not <$> stEmpty candidatesArr) $ do
+  whileM_ (not <$> stEmpty candidatesRef) $ do
     -- pick next best candidate
-    currReindeer@(Reindeer (x, y) dir) <- tag "Current Reindeer: " <$> stFindNext candidatesArr scoresArr
-    score <- tag "Score: " . toInteger <$> readArray scoresArr (toInt currReindeer)
+    currReindeer@(Reindeer (x, y) dir) <- stFindNext candidatesRef candidatesArr scoresArr
+    score <- toInteger <$> readArray scoresArr (toInt currReindeer)
     -- check its neighbors. if they have not been visited, set their score, and add them to the list
-    mapM_ (stCheckNeighbor tilesArr candidatesArr doneArr scoresArr parentsArr currReindeer) [E, S, W, N]
+    mapM_ (stCheckNeighbor tilesArr candidatesRef candidatesArr doneArr scoresArr parentsArr currReindeer) [E, S, W, N]
     -- mark it as visited
     writeArray doneArr (toInt currReindeer) True
 
@@ -153,38 +149,43 @@ shortestPath (RaindeerMaze width height tiles reindeer) = runST $ do
        in Reindeer (toInteger x, toInteger y) d
     toInt (Reindeer (x, y) dir) = fromInteger (y * width + x) * 4 + fromEnum dir
 
-    stEmpty :: STUArray s Int Bool -> ST s Bool
-    stEmpty candidatesArr = do
-      candidates <- filter snd <$> getAssocs candidatesArr
-      return $ null candidates
+    stEmpty :: STRef s Int -> ST s Bool
+    stEmpty candidatesRef = do
+      lastCandidate <- readSTRef candidatesRef
+      return $ lastCandidate == 0
 
-    stAdd :: STUArray s Int Bool -> Reindeer -> ST s ()
-    stAdd candidatesArr reindeer =
-      writeArray candidatesArr (toInt (tag "Add: " reindeer)) True
+    stAdd :: STRef s Int -> STUArray s Int Int -> Reindeer -> ST s ()
+    stAdd candidatesRef candidatesArr reindeer = do
+      lastCandidate <- readSTRef candidatesRef
+      writeArray candidatesArr lastCandidate (toInt reindeer)
+      modifySTRef' candidatesRef succ
 
-    stFindNext :: STUArray s Int Bool -> STUArray s Int Int -> ST s Reindeer
-    stFindNext candidatesArr scoresArr = do
-      candidates <- map fst . filter snd <$> getAssocs candidatesArr
+    stFindNext :: STRef s Int -> STUArray s Int Int -> STUArray s Int Int -> ST s Reindeer
+    stFindNext candidatesRef candidatesArr scoresArr = do
+      lastCandidate <- readSTRef candidatesRef
+      candidates <- mapM (readArray candidatesArr) [0 .. lastCandidate - 1]
       min <- minimumOnM (readArray scoresArr) candidates
       let idx = fromMaybe 0 min
-      writeArray candidatesArr idx False
+          candidateIdx = fromMaybe 0 $ L.elemIndex idx candidates
+      last <- readArray candidatesArr (lastCandidate - 1)
+      writeArray candidatesArr candidateIdx last
+      modifySTRef' candidatesRef pred
       return $ fromInt idx
 
-    stCheckNeighbor :: STUArray s Int Char -> STUArray s Int Bool -> STUArray s Int Bool -> STUArray s Int Int -> STUArray s Int Int8 -> Reindeer -> Dir -> ST s ()
-    stCheckNeighbor tilesArr candidatesArr doneArr scoresArr parentsArr currReindeer@(Reindeer (x, y) dir) dir' = do
+    stCheckNeighbor :: STUArray s Int Char -> STRef s Int -> STUArray s Int Int -> STUArray s Int Bool -> STUArray s Int Int -> STUArray s Int Int8 -> Reindeer -> Dir -> ST s ()
+    stCheckNeighbor tilesArr candidatesRef candidatesArr doneArr scoresArr parentsArr currReindeer@(Reindeer (x, y) dir) dir' = do
       let (x', y') = moveCoords dir' (x, y)
       tile <- readArray tilesArr (fromInteger $ y' * width + x')
       when (tile == '.' && reachable dir dir') $ do
         -- we need to identify the next node
         let nextReindeer =
-              tag "Move: "
-                $ if dir == dir'
-                  then Reindeer (x', y') dir'
-                  else Reindeer (x, y) dir'
+              if dir == dir'
+                then Reindeer (x', y') dir'
+                else Reindeer (x, y) dir'
         done <- readArray doneArr (toInt nextReindeer)
         unless done $ do
           stUpdateScore scoresArr parentsArr currReindeer nextReindeer
-          stAdd candidatesArr nextReindeer
+          stAdd candidatesRef candidatesArr nextReindeer
 
     stUpdateScore :: STUArray s Int Int -> STUArray s Int Int8 -> Reindeer -> Reindeer -> ST s ()
     stUpdateScore scoresArr parentsArr currReindeer nextReindeer = do
@@ -192,7 +193,7 @@ shortestPath (RaindeerMaze width height tiles reindeer) = runST $ do
       oldScore <- readArray scoresArr (toInt nextReindeer)
       let newScore = currScore + fromInteger (moveScore currReindeer nextReindeer)
       when (oldScore == -1 || newScore <= oldScore) $ do
-        writeArray scoresArr (toInt nextReindeer) (tag "Score Updated: " newScore)
+        writeArray scoresArr (toInt nextReindeer) newScore
         -- update parents bitmask
         oldParents <- readArray parentsArr (toInt nextReindeer)
         writeArray parentsArr (toInt nextReindeer) (oldParents .|. moveParent currReindeer nextReindeer)
@@ -212,7 +213,7 @@ shortestPath (RaindeerMaze width height tiles reindeer) = runST $ do
 
     stParents :: STUArray s Int Int8 -> Int -> ST s [Integer]
     stParents parentsArr idx = do
-      parents <- tag "Parents: " <$> readArray parentsArr idx
+      parents <- readArray parentsArr idx
 
       let (Reindeer (x, y) dir) = fromInt idx
           pS = if parents .&. 1 > 0 then Just (Reindeer (x, y - 1) dir) else Nothing
@@ -221,26 +222,8 @@ shortestPath (RaindeerMaze width height tiles reindeer) = runST $ do
           pW = if parents .&. 8 > 0 then Just (Reindeer (x + 1, y) dir) else Nothing
           pCW = if parents .&. 16 > 0 then Just (Reindeer (x, y) (ccw dir)) else Nothing
           pCCW = if parents .&. 32 > 0 then Just (Reindeer (x, y) (cw dir)) else Nothing
-      -- i need to recursivelly called stParents on my parents.
-      -- to call myself, i will need the indices...
-      -- each of those will return a list
-      -- i concat those lists, nub them, add myself and return
       parentTiles <- mapM (stParents parentsArr) $ toInt <$> catMaybes [pS, pE, pN, pW, pCW, pCCW]
-
       return $ y * width + x : L.concat parentTiles
-
-    countPathTiles :: STUArray s Int Int -> Int -> ST s Integer
-    countPathTiles parentsArr idx = do
-      parents <- tag "Parents: " <$> readArray parentsArr idx
-      let w = fromInteger width
-          x = idx `mod` w
-          y = idx `div` w
-          pE = if parents .&. shift 1 (fromEnum E) > 0 then Just (y * w + (x - 1)) else Nothing
-          pS = if parents .&. shift 1 (fromEnum S) > 0 then Just ((y - 1) * w + x) else Nothing
-          pW = if parents .&. shift 1 (fromEnum W) > 0 then Just (y * w + (x + 1)) else Nothing
-          pN = if parents .&. shift 1 (fromEnum N) > 0 then Just ((y + 1) * w + x) else Nothing
-      parentTiles <- mapM (countPathTiles parentsArr) $ catMaybes [pE, pS, pW, pN]
-      return $ 1 + sum parentTiles
 
 day16 :: Text -> IO (String, String)
 day16 input = do
