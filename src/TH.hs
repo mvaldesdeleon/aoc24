@@ -26,7 +26,8 @@ challenges =
     "Day 12: Garden Groups",
     "Day 13: Claw Contraption",
     "Day 14: Restroom Redoubt",
-    "Day 15: Warehouse Woes"
+    "Day 15: Warehouse Woes",
+    "Day 16: Reindeer Maze"
   ]
 
 makeDayT :: Q [Dec]
