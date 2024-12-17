@@ -111,7 +111,7 @@ shortestPath (RaindeerMaze width height tiles reindeer) = runST $ do
 
   whileM_ (not <$> stEmpty candidatesRef) $ do
     -- pick next best candidate
-    currReindeer@(Reindeer (x, y) dir) <- stFindNext candidatesRef candidatesArr scoresArr
+    currReindeer <- stFindNext candidatesRef candidatesArr scoresArr
     score <- toInteger <$> readArray scoresArr (toInt currReindeer)
     -- check its neighbors. if they have not been visited, set their score, and add them to the list
     mapM_ (stCheckNeighbor tilesArr candidatesRef candidatesArr doneArr scoresArr parentsArr currReindeer) [E, S, W, N]
@@ -123,6 +123,7 @@ shortestPath (RaindeerMaze width height tiles reindeer) = runST $ do
       endX = toInteger $ endIdx `mod` fromInteger width
       endY = toInteger $ endIdx `div` fromInteger width
 
+  -- there are four end nodes, one for each direction
   ends <- mapM (readArray scoresArr . toInt . Reindeer (endX, endY)) [E, S, W, N]
   let minScore = L.minimum $ L.filter (> 0) ends
   parents <- mapM (stParents parentsArr . toInt . Reindeer (endX, endY)) [E, S, W, N]
@@ -167,6 +168,7 @@ shortestPath (RaindeerMaze width height tiles reindeer) = runST $ do
       min <- minimumOnM (readArray scoresArr) candidates
       let idx = fromMaybe 0 min
           candidateIdx = fromMaybe 0 $ L.elemIndex idx candidates
+      -- remove candidate by replacing it with the last one and shortening the list
       last <- readArray candidatesArr (lastCandidate - 1)
       writeArray candidatesArr candidateIdx last
       modifySTRef' candidatesRef pred
