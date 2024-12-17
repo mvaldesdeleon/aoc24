@@ -179,7 +179,7 @@ shortestPath (RaindeerMaze width height tiles reindeer) = runST $ do
       let (x', y') = moveCoords dir' (x, y)
       tile <- readArray tilesArr (fromInteger $ y' * width + x')
       when (tile == '.' && reachable dir dir') $ do
-        -- we need to identify the next node
+        -- are we walking or are we rotating?
         let nextReindeer =
               if dir == dir'
                 then Reindeer (x', y') dir'
