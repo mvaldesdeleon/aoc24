@@ -3,6 +3,7 @@ module Day15
   )
 where
 
+import Control.Concurrent
 import Control.Monad
 import Control.Monad.Loops
 import Control.Monad.ST
@@ -13,6 +14,7 @@ import Data.STRef
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import Relude
+import System.Console.ANSI
 
 data Tile = EmptyTile | BoxTile | WallTile
   deriving (Eq, Ord, Show)
@@ -250,6 +252,12 @@ simulateWide (WideWarehouseMap width height tiles boxes robot moves) = runST $ d
   robot' <- readSTRef robotRef
   return $ WideWarehouseMap width height (V.fromList tiles') (V.fromList boxes') robot' []
 
+simulateWide' :: WideWarehouseMap -> WideWarehouseMap
+simulateWide' (WideWarehouseMap width height tiles boxes robot []) = WideWarehouseMap width height tiles boxes robot []
+simulateWide' (WideWarehouseMap width height tiles boxes robot (m : ms)) =
+  let wwm = simulateWide (WideWarehouseMap width height tiles boxes robot [m])
+   in wwm {wmMoves = ms}
+
 stTryMoveWide :: Integer -> STRef s Robot -> STUArray s Int Int -> STUArray s Int Int -> Dir -> ST s ()
 stTryMoveWide width robotRef tilesArr boxesArr move = do
   robot <- readSTRef robotRef
@@ -355,4 +363,21 @@ renderWide (WideWarehouseMap width _ tiles _ (Robot (x, y)) _) =
 
 day15 :: Text -> IO (String, String)
 day15 input = do
+  let wwm = case parseOnly parseWideWarehouseMap input of
+        Left err -> error $ toText err
+        Right wm -> wm
+  clearScreen
+  setCursorPosition 0 0
+  renderWide wwm
+  putStrLn ""
+  putStrLn "Get ready..."
+  threadDelay 5000000
+  foldM_ printFrame wwm (wmMoves wwm)
   return (show $ part1 input, show $ part2 input)
+  where
+    printFrame wwm _ = do
+      setCursorPosition 0 0
+      renderWide wwm
+      threadDelay 1000
+      let wwm' = simulateWide' wwm
+      return wwm'
