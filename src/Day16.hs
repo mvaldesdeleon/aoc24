@@ -112,7 +112,6 @@ shortestPath (RaindeerMaze width height tiles reindeer) = runST $ do
   whileM_ (not <$> stEmpty candidatesRef) $ do
     -- pick next best candidate
     currReindeer <- stFindNext candidatesRef candidatesArr scoresArr
-    score <- toInteger <$> readArray scoresArr (toInt currReindeer)
     -- check its neighbors. if they have not been visited, set their score, and add them to the list
     mapM_ (stCheckNeighbor tilesArr candidatesRef candidatesArr doneArr scoresArr parentsArr currReindeer) [E, S, W, N]
     -- mark it as visited
