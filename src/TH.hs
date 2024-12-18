@@ -27,7 +27,8 @@ challenges =
     "Day 13: Claw Contraption",
     "Day 14: Restroom Redoubt",
     "Day 15: Warehouse Woes",
-    "Day 16: Reindeer Maze"
+    "Day 16: Reindeer Maze",
+    "Day 17: Chronospatial Computer"
   ]
 
 makeDayT :: Q [Dec]
