@@ -142,17 +142,28 @@ part1 input =
    in shortestPath mem
 
 findFirstBadByte :: [Byte] -> Byte
-findFirstBadByte bs =
+findFirstBadByte bs = (bs L.!!) $ bsearch f [0 .. length bs - 1]
+  where
+    f :: Int -> Ordering
+    f i =
+      let r = shortestPath $ simulate bs (toInteger i)
+       in if r == -1 then GT else LT
+
+bsearch :: (a -> Ordering) -> [a] -> a
+bsearch comp as =
   let s = 0
-      e = length bs - 1
+      e = length as - 1
    in go s e
   where
     go s e
-      | s + 1 == e = bs L.!! s
+      | s == e = as L.!! (s - 1)
       | otherwise =
           let m = (e - s) `div` 2 + s
-              r = shortestPath $ simulate bs (toInteger m)
-           in if r == -1 then go s m else go m e
+              a = as L.!! m
+           in case comp a of
+                EQ -> a
+                LT -> go (m + 1) e
+                GT -> go s m
 
 part2 :: Text -> Byte
 part2 input =
@@ -161,4 +172,13 @@ part2 input =
 
 day18 :: Text -> IO (String, String)
 day18 input = do
+  let bs = parseInput input
+      mem = map toChar . V.toList $ simulate bs 1024
+      ascii = T.chunksOf (fromInteger memorySize) $ T.pack mem
+
+  mapM_ (putStrLn . T.unpack) ascii
+
   return (show $ part1 input, show $ part2 input)
+  where
+    toChar Safe = '.'
+    toChar Corrupted = '#'
