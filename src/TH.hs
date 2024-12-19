@@ -29,7 +29,8 @@ challenges =
     "Day 15: Warehouse Woes",
     "Day 16: Reindeer Maze",
     "Day 17: Chronospatial Computer",
-    "Day 18: RAM Run"
+    "Day 18: RAM Run",
+    "Day 19: Linen Layout"
   ]
 
 makeDayT :: Q [Dec]
