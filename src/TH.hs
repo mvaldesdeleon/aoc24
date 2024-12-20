@@ -30,7 +30,8 @@ challenges =
     "Day 16: Reindeer Maze",
     "Day 17: Chronospatial Computer",
     "Day 18: RAM Run",
-    "Day 19: Linen Layout"
+    "Day 19: Linen Layout",
+    "Day 20: Race Condition"
   ]
 
 makeDayT :: Q [Dec]
