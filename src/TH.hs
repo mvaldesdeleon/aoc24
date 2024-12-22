@@ -32,7 +32,8 @@ challenges =
     "Day 18: RAM Run",
     "Day 19: Linen Layout",
     "Day 20: Race Condition",
-    "Day 21: Keypad Conundrum"
+    "Day 21: Keypad Conundrum",
+    "Day 22: Monkey Market"
   ]
 
 makeDayT :: Q [Dec]
