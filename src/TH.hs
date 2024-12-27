@@ -36,7 +36,7 @@ challenges =
     "Day 22: Monkey Market",
     "Day 23: LAN Party",
     "Day 24: Crossed Wires",
-    "Day 25: ??????"
+    "Day 25: Code Chronicle"
   ]
 
 makeDayT :: Q [Dec]
